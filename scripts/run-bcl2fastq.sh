@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# TODO
+#   - add option to specify a custom SampleSheet
+#   - add mechanism to provide additional conversion parameters
+#   - add mechanims to select the bcl2fastq (image) version to use
+
 # guard against wrong usage
 if [[ $# -ne 3 ]]; then
   echo "3 arguments are required!"
