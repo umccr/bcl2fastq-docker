@@ -1,22 +1,65 @@
 #!/bin/bash
 
 # TODO
-#   - add option to specify a custom SampleSheet
-#   - add mechanism to provide additional conversion parameters
-#   - add mechanims to select the bcl2fastq (image) version to use
+#   - add logging mechanism for script other than 'echo'
 
-# guard against wrong usage
-if [[ $# -ne 3 ]]; then
-  echo "3 arguments are required!"
-  echo "  1) runfolder directory"
-  echo "  2) output directory"
-  echo "  3) st2 api key"
+if [[ $# -lt 3 ]]; then
+  echo "A minimum of 3 arguments are required!"
+  echo "  1) The runfolder directory [-o|--output-dir]"
+  echo "  2) The output directory [-R|--runfolder-dir]"
+  echo "  3) An st2 api key [-k|--st2-api-key]"
   exit -1
 fi
 
-runfolder=$1
-output_dir=$2
-st2_api_key=$3
+bcl2fastq_version="latest"
+optional_args=()
+while [[ $# -gt 0 ]]
+do
+  key="$1"
+
+  case $key in
+    -v|--bcl2fastq-version)
+      bcl2fastq_version="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -o|--output-dir)
+      output_dir="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -R|--runfolder-dir)
+      runfolder="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -k|--st2-api-key)
+      st2_api_key="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    *)    # unknown option (everything else)
+      optional_args+=("$1") # save it in an array for later
+      shift # past argument
+      ;;
+  esac
+done
+
+if [[ -z "$output_dir" ]]; then
+  echo "You have to define an output directory!"
+  exit -1
+fi
+
+if [[ -z "$runfolder" ]]; then
+  echo "You have to define a runfolder directory!"
+  exit -1
+fi
+
+if [[ -z "$st2_api_key" ]]; then
+  echo "You have to provide an st2 api key!"
+  exit -1
+fi
+
 
 log_dir="$output_dir"
 runfolder_name=`basename $runfolder`
@@ -24,14 +67,16 @@ log_file="${runfolder_name}.log"
 
 
 # run the actual conversion
-docker run --rm -v $runfolder:$runfolder:ro -v $output_dir:$output_dir umccr/bcl2fastq -R $runfolder -o $output_dir/$runfolder_name --no-lane-splitting &> $output_dir/$log_file
+cmd="docker run --rm -v $runfolder:$runfolder:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder -o $output_dir/$runfolder_name ${optional_args[*]} >& $output_dir/$log_file"
+#echo $cmd
+eval $cmd
 ret_code=$?
 
 status="done"
 if [ $ret_code != 0 ]; then
   status="error"
 fi
-echo $status
+#echo "bcl2fastq exit status: $status (code: $ret_code)"
 
 # finally notify StackStorm of completion
 webhook="curl --insecure -X POST https://arteria.umccr.nopcode.org/api/v1/webhooks/st2 -H \"St2-Api-Key: $st2_api_key\" -H \"Content-Type: application/json\" --data '{\"trigger\": \"umccr.bcl2fastq\", \"payload\": {\"status\": \"$status\", \"runfolder\": \"$runfolder_name\"}}'"
