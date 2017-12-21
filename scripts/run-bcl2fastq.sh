@@ -1,7 +1,10 @@
 #!/bin/bash
 
-# TODO
-#   - add logging mechanism for script other than 'echo'
+# write the script logs next to the script itself
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+function write_log {
+  echo "$(date +"%Y%m%d%H%M"): $1" >> $DIR/$(basename $0).log
+}
 
 if [[ $# -lt 3 ]]; then
   echo "A minimum of 3 arguments are required!"
@@ -65,10 +68,14 @@ log_dir="$output_dir"
 runfolder_name=`basename $runfolder`
 log_file="${runfolder_name}.log"
 
+# make sure the output directory exists
+mkdir_command="mkdir -p \"$output_dir/$runfolder_name\""
+write_log "$mkdir_command"
+eval $mkdir_command
 
 # run the actual conversion
 cmd="docker run --rm -v $runfolder:$runfolder:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder -o $output_dir/$runfolder_name ${optional_args[*]} >& $output_dir/$log_file"
-#echo $cmd
+write_log "$cmd"
 eval $cmd
 ret_code=$?
 
@@ -76,9 +83,9 @@ status="done"
 if [ $ret_code != 0 ]; then
   status="error"
 fi
-#echo "bcl2fastq exit status: $status (code: $ret_code)"
+write_log "bcl2fastq exit status: $status (code: $ret_code)"
 
 # finally notify StackStorm of completion
 webhook="curl --insecure -X POST https://arteria.umccr.nopcode.org/api/v1/webhooks/st2 -H \"St2-Api-Key: $st2_api_key\" -H \"Content-Type: application/json\" --data '{\"trigger\": \"umccr.bcl2fastq\", \"payload\": {\"status\": \"$status\", \"runfolder\": \"$runfolder_name\"}}'"
-#echo $webhook
+write_log "$webhook"
 eval $webhook
