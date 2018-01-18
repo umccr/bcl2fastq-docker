@@ -6,11 +6,12 @@ function write_log {
   echo "$(date +"%Y%m%d%H%M"): $1" >> $DIR/$(basename $0).log
 }
 
-if [[ $# -lt 3 ]]; then
-  echo "A minimum of 3 arguments are required!"
-  echo "  1) The runfolder directory [-o|--output-dir]"
-  echo "  2) The output directory [-R|--runfolder-dir]"
-  echo "  3) An st2 api key [-k|--st2-api-key]"
+if [[ $# -lt 4 ]]; then
+  echo "A minimum of 4 arguments are required!"
+  echo "  1) The runfolder directory [-R|--runfolder-dir]"
+  echo "  2) The runfolder name [-n|--runfolder-name]"
+  echo "  3) The output directory [-o|--output-dir]"
+  echo "  4) An st2 api key [-k|--st2-api-key]"
   exit -1
 fi
 
@@ -32,7 +33,12 @@ do
       shift # past value
       ;;
     -R|--runfolder-dir)
-      runfolder="$2"
+      runfolder_dir="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -n|--runfolder-name)
+      runfolder_name="$2"
       shift # past argument
       shift # past value
       ;;
@@ -53,8 +59,13 @@ if [[ -z "$output_dir" ]]; then
   exit -1
 fi
 
-if [[ -z "$runfolder" ]]; then
+if [[ -z "$runfolder_dir" ]]; then
   echo "You have to define a runfolder directory!"
+  exit -1
+fi
+
+if [[ -z "$runfolder_name" ]]; then
+  echo "You have to define a runfolder name!"
   exit -1
 fi
 
@@ -64,17 +75,13 @@ if [[ -z "$st2_api_key" ]]; then
 fi
 
 
-log_dir="$output_dir"
-runfolder_name=`basename $runfolder`
-log_file="${runfolder_name}.log"
-
 # make sure the output directory exists
-mkdir_command="mkdir -p \"$output_dir/$runfolder_name\""
+mkdir_command="mkdir -p \"$output_dir\""
 write_log "$mkdir_command"
 eval $mkdir_command
 
 # run the actual conversion
-cmd="docker run --rm -v $runfolder:$runfolder:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder -o $output_dir/$runfolder_name ${optional_args[*]} >& $output_dir/$log_file"
+cmd="docker run --rm -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]} >& $output_dir/${runfolder_name}.log"
 write_log "$cmd"
 eval $cmd
 ret_code=$?
