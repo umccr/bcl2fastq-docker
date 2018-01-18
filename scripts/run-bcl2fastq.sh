@@ -3,8 +3,10 @@
 # write the script logs next to the script itself
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 function write_log {
-  echo "$(date +"%Y%m%d%H%M"): $1" >> $DIR/$(basename $0).log
+  echo "$(date +'%Y%m%d%H%M'): $1" >> $DIR/$(basename $0).log
 }
+
+write_log "Script parameters: $*"
 
 if [[ $# -lt 4 ]]; then
   echo "A minimum of 4 arguments are required!"
