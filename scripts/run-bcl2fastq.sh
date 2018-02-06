@@ -79,13 +79,14 @@ fi
 
 # make sure the output directory exists
 mkdir_command="mkdir -p \"$output_dir\""
-write_log "$mkdir_command"
+write_log "creating output dir: $mkdir_command"
 eval $mkdir_command
 
 # run the actual conversion
-#cmd="docker run --rm -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]} >& $output_dir/${runfolder_name}.log"
-cmd="docker run --rm -d -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]}"
-write_log "$cmd"
+cmd="docker run --rm -d -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]} >& $output_dir/${runfolder_name}.log"
+#cmd="docker run --rm -d -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]}"
+write_log "running command: $cmd"
+write_log "writing logs to: $output_dir/${runfolder_name}.log"
 eval $cmd
 ret_code=$?
 
@@ -97,5 +98,5 @@ write_log "bcl2fastq exit status: $status (code: $ret_code)"
 
 # finally notify StackStorm of completion
 webhook="curl --insecure -X POST https://arteria.umccr.nopcode.org/api/v1/webhooks/st2 -H \"St2-Api-Key: $st2_api_key\" -H \"Content-Type: application/json\" --data '{\"trigger\": \"umccr.bcl2fastq\", \"payload\": {\"status\": \"$status\", \"runfolder\": \"$runfolder_name\"}}'"
-write_log "$webhook"
+write_log "calling home: $webhook"
 eval $webhook
