@@ -83,8 +83,7 @@ write_log "creating output dir: $mkdir_command"
 eval $mkdir_command
 
 # run the actual conversion
-cmd="docker run --rm -d -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]} >& $output_dir/${runfolder_name}.log"
-#cmd="docker run --rm -d -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]}"
+cmd="docker run --rm -v $runfolder_dir:$runfolder_dir:ro -v $output_dir:$output_dir umccr/bcl2fastq:$bcl2fastq_version -R $runfolder_dir -o $output_dir ${optional_args[*]} >& $output_dir/${runfolder_name}.log"
 write_log "running command: $cmd"
 write_log "writing logs to: $output_dir/${runfolder_name}.log"
 eval $cmd
